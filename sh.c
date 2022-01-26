@@ -3,6 +3,7 @@
 #include "types.h"
 #include "user.h"
 #include "fcntl.h"
+#include "trace.h"
 
 // Parsed command representation
 #define EXEC  1
@@ -12,6 +13,23 @@
 #define BACK  5
 
 #define MAXARGS 10
+
+int tracing = 0;                  //tracing variable
+//strings which hold the commands to be entered in the shell to enable and disable tracing
+char trace_cmd[] = "trace\n";
+char untrace_cmd[] = "untrace\n";
+
+//Function to check equality of two strings. We use this to check is "trace" or "untrace" have been entered in the shell
+int streq(char *a, char *b) {
+  while(1) {
+    if(*a != *b) {
+      return 0;
+    }
+    if(*a == '\n') return 1;      //Commands end with a newline
+    a++;
+    b++;
+  }
+}
 
 struct cmd {
   int type;
@@ -75,6 +93,7 @@ runcmd(struct cmd *cmd)
     ecmd = (struct execcmd*)cmd;
     if(ecmd->argv[0] == 0)
       exit();
+    if(tracing) trace(T_TRACE | T_ONFORK);      //If “trace” has been entered in the shell then the global variable tracing will be true. In this case we call the trace system call with tracing enabled for child processes as well
     exec(ecmd->argv[0], ecmd->argv);
     printf(2, "exec %s failed\n", ecmd->argv[0]);
     break;
@@ -164,6 +183,17 @@ main(void)
         printf(2, "cannot cd %s\n", buf+3);
       continue;
     }
+
+    //we check the command line input and set the global variable tracing accordingly
+    if(streq(buf, trace_cmd)) {
+      tracing = 1;
+      continue;
+    }
+    if(streq(buf, untrace_cmd)) {
+      tracing = 0;
+      continue;
+    }
+
     if(fork1() == 0)
       runcmd(parsecmd(buf));
     wait();

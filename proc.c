@@ -6,6 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "trace.h"
 
 struct {
   struct spinlock lock;
@@ -87,6 +88,7 @@ allocproc(void)
 
 found:
   p->state = EMBRYO;
+  p->traced = T_UNTRACE;                              //we initialise our tracing variable for the new process to untraced
   p->pid = nextpid++;
 
   release(&ptable.lock);
@@ -196,6 +198,7 @@ fork(void)
     np->state = UNUSED;
     return -1;
   }
+  np->traced = (proc->traced & T_ONFORK) ? proc->traced : T_UNTRACE;  //we initialise the tracing variable for the child process based the global variable T_ONFORK (whether we are going to trace the children of a process created by fork)
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;

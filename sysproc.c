@@ -6,6 +6,7 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "proc.h"
+#include "trace.h"
 
 int
 sys_fork(void)
@@ -88,4 +89,12 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+//Procedure for the trace system call
+int sys_trace() {
+  int n = 0;
+  argint(0, &n);
+  proc->traced = (n & T_TRACE) ? n : 0;
+  return 0;
 }

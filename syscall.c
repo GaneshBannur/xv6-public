@@ -6,6 +6,7 @@
 #include "proc.h"
 #include "x86.h"
 #include "syscall.h"
+#include "trace.h"
 
 // User code makes a system call with INT T_SYSCALL.
 // System call number in %eax.
@@ -103,6 +104,7 @@ extern int sys_unlink(void);
 extern int sys_wait(void);
 extern int sys_write(void);
 extern int sys_uptime(void);
+extern int sys_trace(void);         //declaration of the system call function
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -126,17 +128,68 @@ static int (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
+[SYS_trace]   sys_trace,
+};
+
+//array of system call names used to print the names of the system calls in the tracing information instead of their numbers
+static char* syscall_names[] = {
+[SYS_fork]    "fork",
+[SYS_exit]    "exit",
+[SYS_wait]    "wait",
+[SYS_pipe]    "pipe",
+[SYS_read]    "read",
+[SYS_kill]    "kill",
+[SYS_exec]    "exec",
+[SYS_fstat]   "fstat",
+[SYS_chdir]   "chdir",
+[SYS_dup]     "dup",
+[SYS_getpid]  "getpid",
+[SYS_sbrk]    "sbrk",
+[SYS_sleep]   "sleep",
+[SYS_uptime]  "uptime",
+[SYS_open]    "open",
+[SYS_write]   "write",
+[SYS_mknod]   "mknod",
+[SYS_unlink]  "unlink",
+[SYS_link]    "link",
+[SYS_mkdir]   "mkdir",
+[SYS_close]   "close",
+[SYS_trace]   "trace",
 };
 
 void
 syscall(void)
 {
-  int num;
+  int num, i;
+  int is_traced = (proc->traced & T_TRACE);               //flag variable enabled only if the global tracing variable and the calling process' tracing variable are both enabled
+  char procname[16];                                      //stores name of calling process
   struct proc *curproc = myproc();
 
+  /*Copying the calling process' name into procname.
+  If the system call exec is called, the calling process’ name is replaced with a new running process name.
+  By doing this we remember the process name*/
+  for(i=0;proc->name[i]!=0;i++) {
+    procname[i] = proc->name[i];
+  }
+  procname[i] = proc->name[i];
+
   num = curproc->tf->eax;
+
+  //if the system call used is exit, it won't return after the system call so we print the tracing info here
+  if(num==SYS_exit && is_traced) {
+    cprintf("\e[35mTrace Info: pid = %d, process name = %s, system call = %s\e[0m\n", proc->pid, procname, syscall_names[num]);
+  }
+
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
     curproc->tf->eax = syscalls[num]();
+
+    if(is_traced) {
+        cprintf((num == SYS_exec && proc->tf->eax == 0) ?
+        "\e[35mTrace Info: pid = %d, process name = %s, system call = %s\e[0m\n" :                    //the exec system call has no return value in the calling process’ memory space so we have a separate print statement for it with no return value
+        "\e[35mTrace Info: pid = %d, process name = %s, system call = %s, return value = %d\e[0m\n",
+        proc->pid, procname, syscall_names[num], proc->tf->eax);
+    }
+    
   } else {
     cprintf("%d %s: unknown sys call %d\n",
             curproc->pid, curproc->name, num);

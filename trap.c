@@ -22,6 +22,7 @@ tvinit(void)
   for(i = 0; i < 256; i++)
     SETGATE(idt[i], 0, SEG_KCODE<<3, vectors[i], 0);
   SETGATE(idt[T_SYSCALL], 1, SEG_KCODE<<3, vectors[T_SYSCALL], DPL_USER);
+  SETGATE(idt[78], 1, SEG_KCODE<<3, vectors[78], DPL_USER);               //we initialize our exception (with interrupt number 78) similar to T_SYSCALL as we want to call it from the user space
 
   initlock(&tickslock, "time");
 }
@@ -44,6 +45,14 @@ trap(struct trapframe *tf)
     if(myproc()->killed)
       exit();
     return;
+  }
+
+  if(tf->trapno == 78){                                               //we define interrupt 78 to occur when an invalid memory access occurs within a program
+    if(myproc()->killed)
+      exit();
+    myproc()->tf = tf;
+    cprintf("Trap number 78: Invalid memory access within program\n");
+    exit();
   }
 
   switch(tf->trapno){
