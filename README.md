@@ -18,8 +18,8 @@ The following extensions were made to xv6
    2. The process and its children being traced
    3. Process not being traced
    
-
-#### Original README:
+<br></br>
+### Original README:
 
 NOTE: we have stopped maintaining the x86 version of xv6, and switched
 our efforts to the RISC-V version
