@@ -1,3 +1,26 @@
+# Extending xv6
+
+The following extensions were made to xv6
+
+1. Defined a new exception and added a trap handler to handle the exception
+   
+   The interrupt number 78 is unused in the x86 architecture so it can be used to define a new exception.
+   The new exception is defined to occur when an invalid memory access occurs within a program.
+   For example it occurs when a program tries to access an element which is out of bounds of a data structure.
+   In the test program testprg.c the interrupt occurs when an out-of-bounds index is tried to be accessed in an array.
+   
+2. Added a system call to trace the system calls made by a process
+
+   The system call named "trace" is created which traces the system calls made by a process if tracing is enabled gloablly and for that process.
+   The test program trd.c forks a child and waits for it to complete. The child opens and closes a file to demonstrate the open and close system calls.
+   The test program shows three modes in which a process can execute:
+   1. Only the process being traced
+   2. The process and its children being traced
+   3. Process not being traced
+   
+
+#### Original README:
+
 NOTE: we have stopped maintaining the x86 version of xv6, and switched
 our efforts to the RISC-V version
 (https://github.com/mit-pdos/xv6-riscv.git)
